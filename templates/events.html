@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block title %}Events{% endblock %}
+
+{% block content %}
+<div class="events-page">
+    <div class="events-header">
+        <h1>Upcoming Events</h1>
+        {% if session.get('user_role') == 'admin' %}
+        <div class="admin-controls">
+            <button onclick="showEventModal()" class="btn-primary">Create Event</button>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="events-grid" id="eventsGrid">
+        <!-- Events will be populated here via JavaScript -->
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentEvents = [];
+
+function handleError(error) {
+    console.error('Error:', error);
+    let errorMessage = 'An unexpected error occurred';
+    
+    if (error.response && error.response.data) {
+        errorMessage = error.response.data.error || error.response.data.message || errorMessage;
+    } else if (error.message) {
+        errorMessage = error.message;
+    }
+    
+    Swal.fire({
+        title: 'Error',
+        text: errorMessage,
+        icon: 'error',
+        confirmButtonColor: '#d33'
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadEvents();
+});
+
+async function loadEvents() {
+    try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch('/api/events', {
+            headers: token ? {
+                'Authorization': `Bearer ${token}`
+            } : {}
+        });
+        const events = await response.json();
+        displayEvents(events);
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+function displayEvents(events) {
+    const grid = document.getElementById('eventsGrid');
+    grid.innerHTML = '';
+
+    events.forEach(event => {
+        const card = createEventCard(event);
+        grid.appendChild(card);
+    });
+}
+
+function createEventCard(event) {
+    const card = document.createElement('div');
+    card.className = 'event-card';
+    
+    const eventDate = new Date(event.date);
+    const formattedDate = eventDate.toLocaleDateString('en-US', { 
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    let imageHtml = '';
+    if (event.imageUrl) {
+        imageHtml = `<img src="${event.imageUrl}" alt="${event.title}" class="event-image">`;
+    }
+
+    card.innerHTML = `
+        ${imageHtml}
+        <div class="event-content">
+            <h3>${event.title}</h3>
+            <p class="event-description">${event.description}</p>
+            <p class="event-datetime"><strong>When:</strong> ${formattedDate}</p>
+            <p class="event-location"><strong>Where:</strong> ${event.location}</p>
+            <div class="event-actions">
+                ${event.currentUserEnrolled ? 
+                    `<button class="btn-danger" onclick="handleEnrollment('${event.id}', ${event.currentUserEnrolled})">Un-enroll</button>` :
+                    `<button class="btn-primary" onclick="handleEnrollment('${event.id}', ${event.currentUserEnrolled})">Enroll Now</button>`
+                }
+            </div>
+            ${event.enrollments > 0 ? `
+            <div class="enrollment-count">
+                <p>${event.enrollments} ${event.enrollments === 1 ? 'person' : 'people'} enrolled</p>
+            </div>` : ''}
+        </div>
+    `;
+
+    return card;
+}
+
+async function handleEnrollment(eventId, isEnrolled) {
+    try {
+        // Show loading state
+        Swal.fire({
+            title: isEnrolled ? 'Unenrolling...' : 'Enrolling...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            throw { response: { data: { error: 'Please login to enroll in events' } } };
+        }
+        
+        const idToken = await user.getIdToken();
+        const response = await fetch(`/api/events/${eventId}/${isEnrolled ? 'unenroll' : 'enroll'}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw { response: { data: data } };
+        }
+        
+        // Show success message
+        showSuccess(data.message);
+        
+        // Reload events
+        await loadEvents();
+          } catch (error) {
+        handleError(error);    }
+}
+
+function showSuccess(message) {
+    Swal.fire({
+        title: 'Success!',
+        text: message,
+        icon: 'success',
+        confirmButtonColor: '#28a745'
+    });
+}
+
+function showLoading() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'flex';
+    }
+}
+
+function hideLoading() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}
+<style>
+.events-page {
+    padding: 2rem 0;
+}
+
+.events-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.events-header h1 {
+    font-size: 2.5rem;
+    color: var(--secondary-color);
+}
+
+.event-description {
+    margin: 1rem 0;
+    line-height: 1.6;
+}
+
+.event-datetime,
+.event-location {
+    margin: 0.5rem 0;
+    color: var(--text-color);
+}
+
+.enrollment-count {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+}
+
+.event-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.event-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.event-actions {
+    margin-top: 1.5rem;
+}
+
+.event-actions button {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover,
+.btn-danger:hover {
+    filter: brightness(110%);
+}
+</style>

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Event Organization - Welcome{% endblock %}
+
+{% block content %}
+<div class="landing-page">
+    <div class="hero-section">
+        <h1>Welcome to Event Organizer</h1>
+        <p class="lead">Create, manage, and discover amazing events</p>
+        {% if not session.user_id %}
+            <div class="cta-buttons">
+                <a href="{{ url_for('login') }}" class="btn-primary">Login</a>
+                <a href="{{ url_for('register') }}" class="btn-primary">Register</a>
+            </div>
+        {% else %}
+            <div class="cta-buttons">
+                {% if session.user_role == 'dev' %}
+                    <a href="{{ url_for('dev_dashboard') }}" class="btn-primary">Go to Dev Dashboard</a>
+                {% elif session.user_role == 'admin' %}
+                    <a href="{{ url_for('dashboard') }}" class="btn-primary">Go to Admin Dashboard</a>
+                {% else %}
+                    <a href="{{ url_for('public_events') }}" class="btn-primary">View Events</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="features-section">
+        <h2>Features</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>Create Events</h3>
+                <p>Easily create and manage your events with all the details you need</p>
+            </div>
+            <div class="feature-card">
+                <h3>Share Events</h3>
+                <p>Share your events with others and discover events from other users</p>
+            </div>
+            <div class="feature-card">
+                <h3>Manage Access</h3>
+                <p>Control who can view and participate in your events</p>
+            </div>
+            <div class="feature-card">
+                <h3>Real-time Updates</h3>
+                <p>Get instant updates and notifications about your events</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Add any landing page specific JavaScript here
+</script>
+{% endblock %}
+

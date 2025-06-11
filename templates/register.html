@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h1>Register</h1>
+    <form id="registerForm" class="auth-form">
+        <div class="input-group">
+            <input type="email" id="email" name="email" placeholder="Email" required>
+            <i class="bx bxs-envelope"></i>
+        </div>
+        <div class="input-group">
+            <input type="text" id="username" name="username" placeholder="Username" required>
+            <i class="bx bxs-user"></i>
+        </div>
+        <div class="input-group">
+            <input type="password" id="password" name="password" placeholder="Password" required>
+            <i class="bx bxs-lock-alt"></i>
+        </div>
+        <div class="input-group">
+            <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" required>
+            <i class="bx bxs-lock"></i>
+        </div>
+        <div class="input-group">
+            <select id="role" name="role" required>
+                <option value="">Select Role</option>
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+                <option value="dev">Developer</option>
+            </select>
+            <i class="bx bxs-user-circle"></i>
+        </div>
+        <div class="input-group" id="devCodeGroup" style="display: none;">
+            <input type="text" id="devCode" name="devCode" placeholder="Developer Registration Code">
+            <i class="bx bxs-key"></i>
+        </div>
+        <button type="submit" class="btn-primary">Register</button>
+        <div class="register-link">
+            <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Show/hide developer code field based on role selection
+document.getElementById('role').addEventListener('change', function() {
+    const devCodeGroup = document.getElementById('devCodeGroup');
+    const devCodeInput = document.getElementById('devCode');
+    if (this.value === 'dev') {
+        devCodeGroup.style.display = 'block';
+        devCodeInput.required = true;
+    } else {
+        devCodeGroup.style.display = 'none';
+        devCodeInput.required = false;
+    }
+});
+
+document.getElementById('registerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const email = document.getElementById('email').value;
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const role = document.getElementById('role').value;
+    const devCode = document.getElementById('devCode').value;
+
+    // Validate email length (client-side)
+    if (email.length < 5) {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+             overlay.style.display = 'none';
+             if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+        }
+        await new Promise(resolve => setTimeout(resolve, 10));
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Email must be at least 5 characters long',
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdrop: 'rgba(0, 0, 0, 0.4)',
+            customClass: {
+                popup: 'swal2-popup-glass',
+                title: 'swal2-title-glass',
+                content: 'swal2-content-glass',
+                confirmButton: 'swal2-confirm-button-glass'
+            }
+        });
+        return; // Stop submission
+    }
+
+    // Validate passwords match - this is a client-side check, no loading overlay here
+    if (password !== confirmPassword) {
+        // Ensure loading overlay is hidden and removed if it somehow appeared
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+             overlay.style.display = 'none'; // Use display: none
+             if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+        }
+
+        // Add a very short pause to allow DOM update, then show alert
+        await new Promise(resolve => setTimeout(resolve, 10)); // 10ms pause
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Passwords do not match',
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdrop: 'rgba(0, 0, 0, 0.4)',
+            customClass: {
+                popup: 'swal2-popup-glass',
+                title: 'swal2-title-glass',
+                content: 'swal2-content-glass',
+                confirmButton: 'swal2-confirm-button-glass'
+            }
+        });
+
+        return; // Stop execution if passwords don't match
+    }    // If passwords match, validate developer code (if dev role) before proceeding
+    // Manual loading control for the entire registration process
+    window.showLoadingOverlay(); // Show loading overlay at the start of the process
+
+    try {
+        // Validate developer code first if role is 'dev'
+        if (role === 'dev') {
+            if (!devCode || devCode.trim() === '') {
+                window.hideLoadingOverlay();
+                await new Promise(resolve => setTimeout(resolve, 300));
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Developer code is required for developer registration.',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    backdrop: 'rgba(0, 0, 0, 0.4)',
+                    customClass: {
+                        popup: 'swal2-popup-glass',
+                        title: 'swal2-title-glass',
+                        content: 'swal2-content-glass',
+                        confirmButton: 'swal2-confirm-button-glass'
+                    }
+                });
+                return;
+            }
+
+            // Validate developer code with backend before creating Firebase user
+            console.log('[register] Validating developer code before Firebase user creation...');
+            const validationResponse = await fetch('/api/validate-dev-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ dev_code: devCode })
+            });
+
+            const validationData = await validationResponse.json();
+            console.log('[register] Dev code validation response:', validationData);
+
+            if (!validationResponse.ok || !validationData.valid) {
+                window.hideLoadingOverlay();
+                await new Promise(resolve => setTimeout(resolve, 300));
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: validationData.error || 'Invalid developer registration code.',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    backdrop: 'rgba(0, 0, 0, 0.4)',
+                    customClass: {
+                        popup: 'swal2-popup-glass',
+                        title: 'swal2-title-glass',
+                        content: 'swal2-content-glass',
+                        confirmButton: 'swal2-confirm-button-glass'
+                    }
+                });
+                return;
+            }
+
+            console.log('[register] Developer code validated successfully. Proceeding with Firebase user creation.');
+        }
+
+        showLoadingOverlay();
+
+        // Create user with Firebase (network call) - only after dev code validation passes
+        console.log('[register] Attempting Firebase user creation for email:', email);
+        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        console.log('[register] Firebase user creation successful for UID:', user.uid, 'Email:', user.email);
+
+        // Get the ID token (network call)
+        const idToken = await user.getIdToken();
+        console.log('[register] Obtained Firebase ID token.');
+
+        // Send registration data to backend (network call - fetch interceptor also tracks this)
+        console.log('[register] Sending registration data to backend.');
+        const response = await fetch('/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                username: username,
+                role: role,
+                dev_code: role === 'dev' ? devCode : undefined
+            })
+        });
+        console.log('[register] Backend /register response status:', response.status);
+
+        const data = await response.json();
+        console.log('[register] Backend /register response data:', data);
+
+        if (!response.ok) {
+            // Hide loading overlay here before showing error, in case fetch interceptor hasn't finished
+             window.hideLoadingOverlay();
+             // Add a small delay before showing the popup after hiding loading
+             await new Promise(resolve => setTimeout(resolve, 300));
+            throw { response: { data: data } };
+        }
+
+        // Hide loading overlay on success before showing success message
+         window.hideLoadingOverlay();
+         // Add a small delay before showing the popup after hiding loading
+         await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Show success message after all network calls are complete and loading is hidden
+        Swal.fire({
+            icon: 'success',
+            title: 'Success',
+            text: role === 'admin' ? 'Registration successful! Your account is pending approval.' : 'Registration successful!',
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdrop: 'rgba(0, 0, 0, 0.4)',
+            customClass: {
+                popup: 'swal2-popup-glass',
+                title: 'swal2-title-glass',
+                content: 'swal2-content-glass',
+                confirmButton: 'swal2-confirm-button-glass'
+            }
+        }).then(() => {
+            window.location.href = data.redirect;
+        });
+
+    } catch (error) {
+        console.error('[register] Error during registration process:', error);
+        // Ensure loading overlay is hidden on any error during the process
+        window.hideLoadingOverlay();
+        // Add a small delay before showing the popup after hiding loading
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Handle Firebase auth errors
+        if (error.code && error.code.startsWith('auth/')) {
+            console.log('[register] Handling Firebase auth error:', error.code);
+            handleFirebaseAuthError(error); // This function also hides the overlay and shows popup
+        } else if (error.response && error.response.data) {
+            // Handle backend errors (non-response.ok from fetch)
+             console.log('[register] Handling backend error:', error.response.data.error);
+             Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.response.data.error,
+                background: 'rgba(255, 255, 255, 0.9)',
+                backdrop: 'rgba(0, 0, 0, 0.4)',
+                customClass: {
+                    popup: 'swal2-popup-glass',
+                    title: 'swal2-title-glass',
+                    content: 'swal2-content-glass',
+                    confirmButton: 'swal2-confirm-button-glass'
+                }
+            });
+        } else {
+            // Handle unexpected errors
+             console.log('[register] Handling unexpected error:', error);
+             Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An unexpected error occurred during registration. Please try again.',
+                background: 'rgba(255, 255, 255, 0.9)',
+                backdrop: 'rgba(0, 0, 0, 0.4)',
+                customClass: {
+                    popup: 'swal2-popup-glass',
+                    title: 'swal2-title-glass',
+                    content: 'swal2-content-glass',
+                    confirmButton: 'swal2-confirm-button-glass'
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

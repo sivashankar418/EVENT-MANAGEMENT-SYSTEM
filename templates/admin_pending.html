@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Approval Pending{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h4 class="mb-0">Admin Approval Pending</h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                        <h5>Your admin account is pending approval</h5>
+                        <p class="text-muted">
+                            Thank you for registering as an admin. Your account is currently under review by our development team.
+                            You will be notified once your account has been approved.
+                        </p>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">What happens next?</h6>
+                        <ul class="mb-0">
+                            <li>Our development team will review your account</li>
+                            <li>You will receive an email notification once approved</li>
+                            <li>You can check back here for status updates</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <form action="{{ url_for('logout') }}" method="POST" style="display: inline;">
+                            <button type="submit" class="btn btn-secondary">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

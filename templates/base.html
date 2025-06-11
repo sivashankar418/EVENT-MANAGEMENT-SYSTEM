@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Event Organization - {% block title %}{% endblock %}</title>
+    <!-- Critical CSS to prevent white flash during page transitions -->
+    <style>
+        html, body {
+            background-color: #121212;  /* Dark background color */
+            color: #ffffff;
+            transition: none !important;
+        }
+        
+        /* Instant page transitions */
+        body {
+            opacity: 1;
+            animation: none !important;
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ range(1000, 9999) | random }}">
+    <!-- Boxicons CDN -->
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <!-- Firebase SDK --><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- Add SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        /* Custom styles for SweetAlert2 */
+        .swal2-popup {
+            background: rgba(255, 255, 255, 0.9) !important;
+            backdrop-filter: blur(10px) !important;
+            border-radius: 15px !important;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37) !important;
+            border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        }
+        
+        .swal2-title {
+            color: #2c3e50 !important;
+            font-weight: 600 !important;
+        }
+        
+        .swal2-html-container {
+            color: #34495e !important;
+        }
+        
+        .swal2-confirm {
+            background: linear-gradient(45deg, #3085d6, #4a90e2) !important;
+            border-radius: 25px !important;
+            padding: 12px 30px !important;
+            font-weight: 500 !important;
+            box-shadow: 0 4px 15px rgba(48, 133, 214, 0.3) !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        .swal2-confirm:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(48, 133, 214, 0.4) !important;
+        }
+        
+        .swal2-icon {
+            border: none !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        .swal2-icon.swal2-success {
+            background: linear-gradient(45deg, #28a745, #34c759) !important;
+        }
+        
+        .swal2-icon.swal2-error {
+            background: linear-gradient(45deg, #dc3545, #ff3b30) !important;
+        }
+        
+        .swal2-icon.swal2-warning {
+            background: linear-gradient(45deg, #ffc107, #ffd700) !important;
+        }
+        
+        .swal2-icon.swal2-info {
+            background: linear-gradient(45deg, #17a2b8, #00bcd4) !important;
+        }
+    </style>
+    <!-- Your existing CSS -->    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Background Video -->
+    <video class="video-background" autoplay muted loop>
+        <source src="{{ url_for('static', filename='images/bg-video.mp4') }}" type="video/mp4">
+    </video>
+    
+    <!-- Glass Overlay -->
+    <div class="glass-overlay"></div>
+    
+    <nav class="navbar">          <div class="nav-brand">
+            <a href="{{ url_for('index') }}" class="brand-link" style="text-decoration: none;">Event Organizer</a>
+        </div>          <div class="nav-links">            
+            <span class="username-display" style="display: none;">User</span>
+            <a href="{{ url_for('about') }}">About</a>
+            <a href="#" onclick="logout()" id="logoutBtn" style="display: none;">Logout</a>
+            <a href="{{ url_for('login') }}" id="loginLink">Login</a>
+        </div>
+    </nav>    <div class="container">
+        {% block content %}{% endblock %}
+    </div>    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loader"></div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}?v={{ range(1000, 9999) | random }}"></script>
+    {% block scripts %}{% endblock %}
+    
+    <script>
+        // Page transition handling to prevent flash of white content
+        document.addEventListener('DOMContentLoaded', function() {
+            // Control page transition
+            window.addEventListener('beforeunload', function() {
+                // Show loading overlay when navigating away
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                setTimeout(function() {
+                    document.getElementById('loadingOverlay').style.opacity = '1';
+                }, 10);
+                
+                // Set dark background to prevent flash
+                document.body.style.backgroundColor = '#121212';
+            });
+            
+            // Ensure smooth initial page load
+            document.body.style.opacity = '1';
+        });
+    </script>
+</body>
+</html>

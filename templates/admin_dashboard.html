@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <div class="sidebar">
+        <div class="user-info">
+            <h3>Welcome, <span id="username">Admin</span></h3>
+            <p>Role: <span id="user-role">admin</span></p>
+        </div>
+        <h2>Event Management</h2>
+        <button class="btn-primary" onclick="showEventModal()">Create New Event</button>
+    </div>
+
+    <div class="main-content">
+        <div id="eventsList" class="events-grid">
+            <!-- Events will be loaded here dynamically -->
+        </div>
+    </div>
+</div>
+
+<!-- Event Modal -->
+<div id="eventModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <form id="eventForm">
+            <input type="hidden" id="eventId">
+            <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" id="title" name="title" required>
+            </div>
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" name="description" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="date">Date</label>
+                <input type="datetime-local" id="date" name="date" required>
+            </div>
+            <div class="form-group">
+                <label for="location">Location</label>
+                <input type="text" id="location" name="location" required>
+            </div>            <div class="form-group">
+                <label for="image">Event Image</label>
+                <input type="file" id="image" name="image" accept="image/*">
+                <div id="currentImageContainer" style="display: none; margin-top: 10px;">
+                    <label>Current Image:</label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img id="currentImage" src="" alt="Current event image" style="max-width: 100px; max-height: 100px; object-fit: cover; border-radius: 4px;">
+                        <button type="button" id="deleteImageBtn" class="btn-secondary" style="background-color: #dc3545; color: white;">Remove Image</button>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn-primary">Save Event</button>
+        </form>
+    </div>
+</div>
+
+<!-- Error Message Container -->
+<div id="error-message" class="error-message" style="display: none;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin_dashboard.js') }}"></script>
+{% endblock %}

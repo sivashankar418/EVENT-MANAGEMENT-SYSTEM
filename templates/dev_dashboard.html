@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Dev Dashboard{% endblock %}
+
+{% block content %}
+<div class="dev-dashboard">
+    <div class="stats-section">
+        <h2>Real-time Statistics</h2>
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <h3>Total Users</h3>
+                <p class="stat-number" id="totalUsers">{{ total_users + total_admins + total_devs }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Pending Admins</h3>
+                <p class="stat-number" id="pendingAdmins">{{ admins|selectattr('is_approved', 'equalto', false)|list|length }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Banned Users</h3>
+                <p class="stat-number" id="bannedUsers">{{ (users + admins)|selectattr('is_banned', 'equalto', true)|list|length }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="user-management-section">
+        <div class="dev-section">
+            <h2>Dev Users ({{ devs|length }})</h2>
+            <div class="user-list">
+                {% for dev in devs %}
+                <div class="user-card">
+                    <p><strong>Email:</strong> {{ dev.email }}</p>
+                    <p><strong>Status:</strong> {{ "Active" if not dev.is_banned else "Banned" }}</p>
+                    <p><strong>Joined:</strong> {{ dev.created_at }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>        <div class="admin-section">
+            <h2>Admin Users</h2>
+            <div class="admin-filters">
+                <button class="btn-filter active" onclick="filterAdmins('all')">All</button>
+                <button class="btn-filter" onclick="filterAdmins('pending')">Pending Approval</button>
+                <button class="btn-filter" onclick="filterAdmins('approved')">Approved</button>
+            </div>
+            <div class="user-list">
+                {% for admin in admins %}
+                <div class="user-card {% if not admin.is_approved %}pending{% endif %}" data-user-id="{{ admin.id }}" data-status="{% if admin.is_approved %}approved{% else %}pending{% endif %}">
+                    <p><strong>Email:</strong> {{ admin.email }}</p>
+                    <p><strong>Status:</strong> 
+                        {% if admin.is_banned %}
+                            <span class="status banned">Banned</span>
+                        {% elif not admin.is_approved %}
+                            <span class="status pending">Pending Approval</span>
+                        {% else %}
+                            <span class="status active">Active</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Joined:</strong> {{ admin.created_at }}</p>
+                    <div class="user-actions">
+                        {% if not admin.is_approved %}
+                            <button class="btn-success" onclick="approveAdmin('{{ admin.id }}', 'approve')">Approve</button>
+                            <button class="btn-danger" onclick="approveAdmin('{{ admin.id }}', 'deny')">Deny</button>
+                        {% else %}
+                            {% if admin.is_banned %}
+                                <button class="btn-success" onclick="unbanUser('{{ admin.id }}')">Unban</button>
+                            {% else %}
+                                <button class="btn-danger" onclick="banUser('{{ admin.id }}')">Ban</button>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="users-section">
+            <h2>Regular Users</h2>
+            <div class="user-list">
+                {% for user in users %}
+                <div class="user-card" data-user-id="{{ user.id }}">
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p><strong>Status:</strong> {{ "Active" if not user.is_banned else "Banned" }}</p>
+                    <div class="user-actions">
+                        {% if user.is_banned %}
+                        <button class="btn-success" onclick="unbanUser('{{ user.id }}')">Unban</button>
+                        {% else %}
+                        <button class="btn-danger" onclick="banUser('{{ user.id }}')">Ban</button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dev_dashboard.js') }}"></script>
+{% endblock %}
